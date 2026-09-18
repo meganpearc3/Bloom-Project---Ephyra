@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPHYRA</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #02050e;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: default;
+    }
+    #hud {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 10;
+      gap: 12px;
+    }
+    .hud-box {
+      background: rgba(3, 8, 20, 0.90);
+      border: 1px solid #1e293b;
+      padding: 10px 14px;
+      border-radius: 4px;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75);
+      min-width: 215px;
+    }
+    .hud-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    #timer-val {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: #38bdf8;
+      display: block;
+      line-height: 1.1;
+      margin-bottom: 4px;
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+    .hud-bar-container {
+      width: 100%;
+      height: 5px;
+      background: #0f172a;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+      border: 1px solid #1e293b;
+    }
+    .hud-bar-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.15s ease-out, background-color 0.2s ease;
+    }
+    #alert-banner {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.85rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: #f43f5e;
+      background: rgba(8, 12, 24, 0.96);
+      border: 1px solid #f43f5e;
+      padding: 8px 18px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 10;
+      text-align: center;
+      max-width: 85%;
+      box-shadow: 0 0 24px rgba(244, 63, 94, 0.35);
+    }
+    #alert-banner.active {
+      opacity: 1;
+    }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(2, 5, 14, 0.95);
+      color: #cbd5e1;
+      text-align: center;
+      padding: 24px;
+      z-index: 20;
+    }
+    #overlay.hidden {
+      display: none;
+    }
+    h1 {
+      font-size: 2.4rem;
+      letter-spacing: 0.3em;
+      margin-bottom: 6px;
+      font-weight: 400;
+      color: #f8fafc;
+      text-shadow: 0 0 18px rgba(56, 189, 248, 0.4);
+    }
+    .subtitle {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: #38bdf8;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    p {
+      max-width: 540px;
+      line-height: 1.6;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-bottom: 18px;
+    }
+    .upgrade-grid {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 22px;
+      max-width: 620px;
+      width: 100%;
+    }
+    .upgrade-card {
+      border: 1px solid #1e293b;
+      padding: 12px;
+      border-radius: 4px;
+      background: #050b18;
+      cursor: pointer;
+      flex: 1;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .upgrade-card:hover {
+      border-color: #38bdf8;
+    }
+    .upgrade-card.selected {
+      border-color: #38bdf8;
+      background: #09172e;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
+    }
+    .upgrade-title {
+      font-weight: bold;
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+      letter-spacing: 0.08em;
+    }
+    .upgrade-desc {
+      font-size: 0.7rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    button {
+      background: transparent;
+      border: 1px solid #38bdf8;
+      color: #f8fafc;
+      padding: 10px 32px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    button:hover {
+      background: #38bdf8;
+      color: #020813;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.4);
+    }
+
+    #vent-action {
+      position: absolute;
+      left: 50%;
+      bottom: 36px;
+      transform: translateX(-50%);
+      z-index: 15;
+      display: none;
+      background: rgba(3, 10, 24, 0.94);
+      border: 1px solid #38bdf8;
+      color: #e0f2fe;
+      padding: 9px 18px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      pointer-events: none;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+    }
+
+    #vent-action.visible {
+      display: block;
+    }
+
+    .results-table {
+      margin: 14px 0 20px 0;
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 440px;
+      font-size: 0.78rem;
+      text-align: left;
+    }
+    .results-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #1e293b;
+      color: #94a3b8;
+    }
+    .results-table td:last-child {
+      text-align: right;
+      font-weight: bold;
+      color: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div class="hud-box">
+      <div class="hud-label">SURVIVAL CYCLE</div>
+      <span id="timer-val">60.0s</span>
+      <div style="margin-top: 4px;">
+        <span class="hud-label">JELLY COLLISIONS:</span> 
+        <span id="jellies-val" style="color:#f87171; font-weight:bold;">0</span>
+      </div>
+      <div>
+        <span class="hud-label">GRAZE COMBO:</span> 
+        <span id="combo-val" style="color:#10b981; font-weight:bold;">x0</span>
+      </div>
+    </div>
+
+    <div class="hud-box" style="text-align: right;">
+      <div class="hud-label">ADAPTATION: <span id="level-val" style="color:#38bdf8">PHEROMONE</span></div>
+      <div style="margin-top: 4px;">
+        <span class="hud-label">SHELL INTEGRITY:</span> 
+        <span id="hp-val" style="color:#10b981; font-weight:bold;">5/5</span>
+        <div class="hud-bar-container">
+          <div id="hp-bar" class="hud-bar-fill" style="width: 100%; background: #10b981; float: right;"></div>
+        </div>
+      </div>
+      <div style="margin-top: 6px;">
+        <span class="hud-label">BLOOM SATURATION:</span> 
+        <span id="bloom-val" style="color:#10b981; font-weight:bold;">0%</span>
+        <div class="hud-bar-container">
+          <div id="bloom-bar" class="hud-bar-fill" style="width: 0%; background: #10b981; float: right;"></div>
+        </div>
+      </div>
+      <div style="margin-top: 5px;">
+        <span class="hud-label">PULSE:</span> 
+        <span id="shock-status" style="color:#38bdf8; font-weight:bold;">READY [SPACE]</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="alert-banner"></div>
+  <canvas id="canvas"></canvas>
+  <div id="vent-action">PRESS E TO CAP VENT</div>
+
+  <div id="overlay">
+    <h1 id="title">EPHYRA</h1>
+    <div class="subtitle" id="subtitle-el">SINGLE 60-SECOND SURVIVAL CYCLE</div>
+    <p id="desc">
+      A <b>Bloom</b> is a rapid surge of heat and suffocating jellyfish choking the reef shelf.
+      Preserve trophic balance for exactly 60 seconds: herd reef fish downward to graze benthic algae beds, seal erupting hydrothermal vents, and trigger your cryogenic pulse to depressurize heat.
+      <br><br>
+      <b>[WASD / Arrows]</b> Swim &nbsp;|&nbsp; <b>[Space]</b> Cryo Pulse &nbsp;|&nbsp; <b>[E]</b> Cap Vents
+    </p>
+
+    <div id="upgrade-container" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <p style="margin-bottom: 8px; color: #38bdf8; font-size: 0.75rem; letter-spacing: 0.12em;">SELECT ADAPTIVE CARAPACE TRAIT:</p>
+      <div class="upgrade-grid">
+        <div class="upgrade-card selected" id="card-call" onclick="pickUpgrade('call')">
+          <div class="upgrade-title">PHEROMONE SHEPHERD</div>
+          <div class="upgrade-desc">Reef fish track tighter within your bioluminescent wake and clear algae rapidly.</div>
+        </div>
+        <div class="upgrade-card" id="card-shell" onclick="pickUpgrade('shell')">
+          <div class="upgrade-title">HYDRODYNAMIC FINS</div>
+          <div class="upgrade-desc">Elongated flipper span increases flat swim velocity and rotational agility by 40%.</div>
+        </div>
+        <div class="upgrade-card" id="card-burst" onclick="pickUpgrade('burst')">
+          <div class="upgrade-title">CRYOGENIC BURST</div>
+          <div class="upgrade-desc">Shockwave recharge time halved; directly chills thermal water volume.</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="btn">DIVE</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const timerVal = document.getElementById('timer-val');
+    const jelliesVal = document.getElementById('jellies-val');
+    const hpVal = document.getElementById('hp-val');
+    const hpBar = document.getElementById('hp-bar');
+    const bloomVal = document.getElementById('bloom-val');
+    const bloomBar = document.getElementById('bloom-bar');
+    const levelVal = document.getElementById('level-val');
+    const shockStatus = document.getElementById('shock-status');
+    const comboVal = document.getElementById('combo-val');
+    const alertBanner = document.getElementById('alert-banner');
+    const overlay = document.getElementById('overlay');
+    const titleEl = document.getElementById('title');
+    const subtitleEl = document.getElementById('subtitle-el');
+    const descEl = document.getElementById('desc');
+    const upgradeContainer = document.getElementById('upgrade-container');
+    const btn = document.getElementById('btn');
+    const ventAction = document.getElementById('vent-action');
+
+    let W = 0, H = 0;
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ==========================================
+    // GAME STATE (GAMEPLAY ARCHITECTURE UNTOUCHED)
+    // ==========================================
+    const level = 1;
+    let selectedUpgrade = 'call';
+    let gameState = 'MENU';
+    let timeLeft = 60.0;
+    let temp = 0.0;
+    let lastTime = 0;
+    let shockAvailable = true;
+    let shockCooldown = 0;
+    let comboCount = 0;
+    let comboTimer = 0;
+    let bestCombo = 0;
+    let eventTriggered = false;
+    let activeBloomEvent = null;
+    let highestTemp = 0;
+    let jelliesTriggered = 0;
+    let ventsCappedFrames = 0;
+    let algaeEaten = 0;
+    let initialAlgaeCount = 0;
+    let score = 0;
+    let nearbyVentIndex = -1;
+
+    // Health & Damage state
+    let hp = 5;
+    let invulnerableTimer = 0;
+
+    let alert30Shown = false;
+    let alert5Shown = false;
+    let predatorsSpawned = false;
+    let predatorMultiply1 = false;
+    let predatorMultiply2 = false;
+
+    // Entities
+    const turtle = { x: 0, y: 0, vx: 0, vy: 0, angle: 0 };
+    let jellies = [];
+    let fishes = [];
+    let algaes = [];
+    let vents = [];
+    let obstacles = [];
+    let particles = [];
+    let motes = [];
+    let kelps = [];
+    let backgroundReefs = [];
+    let ambientBubbles = [];
+    let seafloorCrags = [];
+    let coralFans = [];
+    let shockwaves = [];
+
+    // Keyboard Input State
+    const keys = {
+      up: false,
+      down: false,
+      left: false,
+      right: false
+    };
+
+    window.addEventListener('keydown', e => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = true;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = true;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
+
+      if (e.code === 'Space') {
+        triggerShockwave();
+      }
+
+      if (e.code === 'KeyE' && gameState === 'PLAYING' && nearbyVentIndex >= 0) {
+        const v = vents[nearbyVentIndex];
+        if (!v || !v.active || v.sealed) return;
+
+        v.sealed = true;
+        v.active = false;
+        score += 150;
+        ventsCappedFrames += 1;
+        nearbyVentIndex = -1;
+        ventAction.classList.remove('visible');
+        showAlert('VENT SEALED — HEAT SOURCE STOPPED', 1800);
+
+        for (let i = 0; i < 24; i++) {
+          particles.push({
+            x: v.x + (Math.random() - 0.5) * 20,
+            y: v.y - 8,
+            vx: (Math.random() - 0.5) * 3.5,
+            vy: -2.4 - Math.random() * 3.0,
+            life: 0.7,
+            color: '#38bdf8'
+          });
+        }
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = false;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = false;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = false;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = false;
+    });
+
+    function pickUpgrade(type) {
+      selectedUpgrade = type;
+      document.querySelectorAll('.upgrade-card').forEach(c => c.classList.remove('selected'));
+      document.getElementById(`card-${type}`).classList.add('selected');
+    }
+
+    function showAlert(text, duration = 3000) {
+      alertBanner.textContent = text;
+      alertBanner.classList.add('active');
+      setTimeout(() => alertBanner.classList.remove('active'), duration);
+    }
+
+    function triggerShockwave() {
+      if (!shockAvailable || gameState !== 'PLAYING') return;
+      shockAvailable = false;
+      shockCooldown = selectedUpgrade === 'burst' ? 4 : 8;
+
+      shockwaves.push({
+        x: turtle.x,
+        y: turtle.y,
+        radius: 12,
+        maxRadius: 240,
+        alpha: 0.95
+      });
+
+      for (let i = 0; i < 20; i++) {
+        const ang = (i / 20) * Math.PI * 2;
+        particles.push({
+          x: turtle.x,
+          y: turtle.y,
+          vx: Math.cos(ang) * 7.0,
+          vy: Math.sin(ang) * 7.0,
+          life: 0.5,
+          color: '#38bdf8'
+        });
+      }
+
+      if (timeLeft <= 5.5) {
+        temp = Math.max(0, temp - 0.3);
+        showAlert("MASS BLOOM DISPERSED!", 2000);
+      } else {
+        temp = Math.max(0, temp - 0.08);
+      }
+
+      for (let i = 0; i < jellies.length; i++) {
+        const j = jellies[i];
+        if (Math.hypot(j.x - turtle.x, j.y - turtle.y) < 220) {
+          j.y += 40;
+          j.vy = 0.2;
+        }
+      }
+
+      for (let i = 0; i < obstacles.length; i++) {
+        const o = obstacles[i];
+        const dist = Math.hypot(o.x - turtle.x, o.y - turtle.y);
+        if (dist < 200) {
+          const pushAngle = Math.atan2(o.y - turtle.y, o.x - turtle.x);
+          o.x += Math.cos(pushAngle) * 70;
+          o.y += Math.sin(pushAngle) * 70;
+        }
+      }
+    }
+
+    function initRun() {
+      timeLeft = 60.0;
+      temp = 0.0;
+      shockAvailable = true;
+      shockCooldown = 0;
+      alert30Shown = false;
+      alert5Shown = false;
+      predatorsSpawned = false;
+      predatorMultiply1 = false;
+      predatorMultiply2 = false;
+      nearbyVentIndex = -1;
+      ventAction.classList.remove('visible');
+
+      hp = 5;
+      invulnerableTimer = 0;
+      hpVal.textContent = '5/5';
+      hpVal.style.color = '#10b981';
+      hpBar.style.width = '100%';
+      hpBar.style.backgroundColor = '#10b981';
+
+      bloomVal.textContent = '0%';
+      bloomVal.style.color = '#10b981';
+      bloomBar.style.width = '0%';
+      bloomBar.style.backgroundColor = '#10b981';
+
+      comboCount = 0;
+      comboTimer = 0;
+      bestCombo = 0;
+      eventTriggered = false;
+      activeBloomEvent = null;
+      highestTemp = 0;
+      jelliesTriggered = 0;
+      ventsCappedFrames = 0;
+      algaeEaten = 0;
+      score = 0;
+
+      jelliesVal.textContent = '0';
+      comboVal.textContent = 'x0';
+
+      jellies = [];
+      fishes = [];
+      algaes = [];
+      vents = [];
+      obstacles = [];
+      particles = [];
+      motes = [];
+      kelps = [];
+      backgroundReefs = [];
+      ambientBubbles = [];
+      seafloorCrags = [];
+      coralFans = [];
+      shockwaves = [];
+
+      turtle.x = W / 2;
+      turtle.y = H / 2;
+      turtle.vx = 0;
+      turtle.vy = 0;
+      turtle.angle = 0;
+
+      // Color-stratified marine snow & plankton
+      for (let i = 0; i < 115; i++) {
+        motes.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vy: -0.15 - Math.random() * 0.45,
+          vx: (Math.random() - 0.5) * 0.35,
+          size: Math.random() * 2.5 + 0.6,
+          layer: Math.random() < 0.35 ? 0 : (Math.random() < 0.7 ? 1 : 2),
+          pulse: Math.random() * Math.PI * 2,
+          type: Math.random() < 0.3 ? 'cyan' : (Math.random() < 0.6 ? 'violet' : 'emerald')
+        });
+      }
+
+      for (let i = 0; i < 30; i++) {
+        ambientBubbles.push({
+          x: Math.random() * W,
+          y: H + Math.random() * H,
+          vy: -0.8 - Math.random() * 1.4,
+          wobblePhase: Math.random() * Math.PI * 2,
+          radius: 1.2 + Math.random() * 2.2
+        });
+      }
+
+      // Three-depth Kelp Groves
+      const kelpCount = 36;
+      for (let i = 0; i < kelpCount; i++) {
+        kelps.push({
+          x: (W / kelpCount) * i + (Math.random() - 0.5) * 25,
+          h: 120 + Math.random() * 170,
+          phase: Math.random() * Math.PI * 2,
+          depth: i % 3,
+          speed: 0.8 + Math.random() * 0.6
+        });
+      }
+
+      // Basalt Outcropping Mesas
+      const reefCount = 10;
+      for (let i = 0; i < reefCount; i++) {
+        backgroundReefs.push({
+          x: (W / (reefCount - 1)) * i,
+          w: 85 + Math.random() * 95,
+          h: 45 + Math.random() * 85
+        });
+      }
+
+      // Benthic Reef Formations & Coral Fans
+      for (let i = 0; i < 16; i++) {
+        seafloorCrags.push({
+          x: Math.random() * W,
+          w: 24 + Math.random() * 36,
+          h: 12 + Math.random() * 22,
+          strataColor: Math.random() < 0.5 ? '#1e1b4b' : '#0f172a'
+        });
+        coralFans.push({
+          x: Math.random() * W,
+          h: 18 + Math.random() * 16,
+          spread: 9 + Math.random() * 9,
+          hue: Math.random() < 0.33 ? '#06b6d4' : (Math.random() < 0.66 ? '#8b5cf6' : '#10b981')
+        });
+      }
+
+      // Seed Algae
+      const cols = Math.floor(W / 40);
+      for (let i = 0; i < cols; i++) {
+        algaes.push({
+          x: i * 40 + 20,
+          y: H - 12,
+          alive: true,
+          swayPhase: Math.random() * Math.PI * 2,
+          height: 15 + Math.random() * 10
+        });
+      }
+
+      initialAlgaeCount = algaes.length;
+
+      // Seed Fish
+      const fishCount = selectedUpgrade === 'call' ? 14 : 9;
+      for (let i = 0; i < fishCount; i++) {
+        fishes.push({
+          x: W * 0.3 + Math.random() * (W * 0.4),
+          y: H * 0.6 + Math.random() * 80,
+          vx: (Math.random() - 0.5) * 2,
+          vy: 0,
+          wiggle: Math.random() * Math.PI * 2
+        });
+      }
+
+      // Seed Vents
+      const ventCount = Math.min(1 + level, 3);
+      for (let i = 0; i < ventCount; i++) {
+        vents.push({
+          x: (W / (ventCount + 1)) * (i + 1),
+          y: H - 8,
+          active: false,
+          sealed: false
+        });
+      }
+    }
+
+    btn.addEventListener('click', () => {
+      initRun();
+      gameState = 'PLAYING';
+      overlay.classList.add('hidden');
+      lastTime = performance.now();
+
+      const traitNames = {
+        call: 'PHEROMONE SHEPHERD',
+        shell: 'HYDRODYNAMIC FINS',
+        burst: 'CRYOGENIC BURST'
+      };
+      levelVal.textContent = traitNames[selectedUpgrade] || 'PHEROMONE';
+    });
+
+    function update(dt) {
+      timeLeft = Math.max(0, timeLeft - dt);
+      timerVal.textContent = timeLeft.toFixed(1) + 's';
+
+      if (invulnerableTimer > 0) {
+        invulnerableTimer = Math.max(0, invulnerableTimer - dt);
+      }
+
+      if (!shockAvailable) {
+        shockCooldown -= dt;
+        shockStatus.textContent = `RECHARGING (${shockCooldown.toFixed(0)}s)`;
+        shockStatus.style.color = '#94a3b8';
+        if (shockCooldown <= 0) {
+          shockAvailable = true;
+          shockStatus.textContent = 'READY [SPACE]';
+          shockStatus.style.color = '#38bdf8';
+        }
+      }
+
+      // 50s Predators
+      if (timeLeft <= 50.0 && !predatorsSpawned) {
+        predatorsSpawned = true;
+        const count = 4;
+        for (let i = 0; i < count; i++) {
+          const fromLeft = i % 2 === 0;
+          obstacles.push({
+            x: fromLeft ? -30 : W + 30,
+            y: 120 + ((H - 300) / Math.max(1, count)) * i,
+            vx: 0,
+            vy: 0,
+            speed: 3.5,
+            size: 14,
+            tailWave: Math.random() * Math.PI * 2
+          });
+        }
+        showAlert("HUNTERS ARRIVING — AVOID THE RED PREDATORS!", 3200);
+      }
+
+      // Swarm multiplication
+      if (predatorsSpawned && timeLeft <= 34.0 && !predatorMultiply1) {
+        predatorMultiply1 = true;
+        const currentHunters = obstacles.slice();
+        currentHunters.forEach((parent, index) => {
+          if (obstacles.length >= 8) return;
+          obstacles.push({
+            x: Math.max(20, Math.min(W - 20, parent.x + (index % 2 === 0 ? 55 : -55))),
+            y: Math.max(70, Math.min(H - 80, parent.y + (index % 2 === 0 ? -45 : 45))),
+            vx: -parent.vy * 0.35,
+            vy: parent.vx * 0.35,
+            speed: 3.6,
+            size: 13,
+            tailWave: Math.random() * Math.PI * 2
+          });
+        });
+        showAlert("PREDATOR SWARM MULTIPLYING!", 2600);
+      }
+
+      if (predatorsSpawned && timeLeft <= 18.0 && !predatorMultiply2) {
+        predatorMultiply2 = true;
+        const additions = Math.min(4, Math.max(0, 12 - obstacles.length));
+        for (let i = 0; i < additions; i++) {
+          const side = i % 4;
+          let x, y;
+          if (side === 0) { x = -30; y = 100 + Math.random() * (H - 220); }
+          else if (side === 1) { x = W + 30; y = 100 + Math.random() * (H - 220); }
+          else if (side === 2) { x = 80 + Math.random() * (W - 160); y = -30; }
+          else { x = 80 + Math.random() * (W - 160); y = H + 30; }
+
+          obstacles.push({
+            x,
+            y,
+            vx: 0,
+            vy: 0,
+            speed: 3.8,
+            size: 13,
+            tailWave: Math.random() * Math.PI * 2
+          });
+        }
+        showAlert("FINAL SWARM — STAY MOVING!", 2600);
+      }
+
+      // 30s VENTS
+      if (timeLeft <= 30.0 && !alert30Shown) {
+        alert30Shown = true;
+        vents.forEach(v => v.active = true);
+        showAlert("30s: VENTS ERUPTING! SWIM CLOSE + PRESS E", 3500);
+      }
+
+      // 42s RANDOM BLOOM EVENT
+      if (timeLeft <= 42.0 && !eventTriggered) {
+        eventTriggered = true;
+        const events = ['CURRENT_SHIFT', 'NUTRIENT_SURGE', 'MEDUSA_SWARM', 'REEF_MIGRATION'];
+        activeBloomEvent = events[Math.floor(Math.random() * events.length)];
+
+        if (activeBloomEvent === 'CURRENT_SHIFT') {
+          fishes.forEach(f => { f.vx += (Math.random() < 0.5 ? -1 : 1) * 3.5; });
+          showAlert('BLOOM EVENT: CURRENT SHIFT — SCHOOL DISPLACED', 2800);
+        } else if (activeBloomEvent === 'NUTRIENT_SURGE') {
+          let revived = 0;
+          for (let i = 0; i < algaes.length && revived < Math.max(4, Math.floor(algaes.length * 0.12)); i++) {
+            if (!algaes[i].alive) { algaes[i].alive = true; revived++; }
+          }
+          temp = Math.min(1, temp + 0.08);
+          showAlert('BLOOM EVENT: NUTRIENT SURGE — ALGAE RETURNING', 2800);
+        } else if (activeBloomEvent === 'MEDUSA_SWARM') {
+          for (let i = 0; i < 10 && jellies.length < 60; i++) {
+            jellies.push({
+              x: Math.random() * W,
+              y: H + 10 + Math.random() * 120,
+              vy: -0.9 - Math.random() * 0.7,
+              size: 8 + Math.random() * 5
+            });
+          }
+          showAlert('BLOOM EVENT: MEDUSA SWARM', 2800);
+        } else if (activeBloomEvent === 'REEF_MIGRATION') {
+          fishes.forEach(f => {
+            f.x = turtle.x + (Math.random() - 0.5) * 110;
+            f.y = turtle.y + (Math.random() - 0.5) * 80;
+          });
+          showAlert('BLOOM EVENT: REEF MIGRATION — SCHOOL RALLIED', 2800);
+        }
+      }
+
+      // 5s EVENT
+      if (timeLeft <= 5.0 && !alert5Shown) {
+        alert5Shown = true;
+        showAlert("5s: BLOOM CRITICAL — PRESS SPACE TO COOL + REPEL!", 3500);
+      }
+
+      // Movement
+      let inputX = 0;
+      let inputY = 0;
+      if (keys.left) inputX -= 1;
+      if (keys.right) inputX += 1;
+      if (keys.up) inputY -= 1;
+      if (keys.down) inputY += 1;
+
+      if (inputX !== 0 && inputY !== 0) {
+        const invLen = 1 / Math.SQRT2;
+        inputX *= invLen;
+        inputY *= invLen;
+      }
+
+      const accel = selectedUpgrade === 'shell' ? 1.4 : 1.0;
+      const maxSpd = selectedUpgrade === 'shell' ? 10.0 : 7.5;
+      const friction = 0.88;
+
+      if (inputX !== 0 || inputY !== 0) {
+        turtle.vx += inputX * accel;
+        turtle.vy += inputY * accel;
+      }
+
+      turtle.vx *= friction;
+      turtle.vy *= friction;
+
+      const spd = Math.hypot(turtle.vx, turtle.vy);
+      if (spd > maxSpd) {
+        turtle.vx = (turtle.vx / spd) * maxSpd;
+        turtle.vy = (turtle.vy / spd) * maxSpd;
+      }
+
+      turtle.x += turtle.vx;
+      turtle.y += turtle.vy;
+
+      turtle.x = Math.max(20, Math.min(W - 20, turtle.x));
+      turtle.y = Math.max(20, Math.min(H - 24, turtle.y));
+
+      if (spd > 0.4) {
+        turtle.angle = Math.atan2(turtle.vy, turtle.vx);
+      }
+
+      // Marine Snow Update
+      for (let i = 0; i < motes.length; i++) {
+        const m = motes[i];
+        m.y += m.vy;
+        m.x += m.vx;
+        if (m.y < 0) { m.y = H; m.x = Math.random() * W; }
+        if (m.x < 0) m.x = W;
+        if (m.x > W) m.x = 0;
+      }
+
+      // Bubbles Update
+      for (let i = 0; i < ambientBubbles.length; i++) {
+        const b = ambientBubbles[i];
+        b.y += b.vy;
+        b.x += Math.sin(performance.now() * 0.003 + b.wobblePhase) * 0.5;
+        if (b.y < -10) {
+          b.y = H + 10;
+          b.x = Math.random() * W;
+        }
+      }
+
+      // Vents
+      let ventHeat = 0;
+      nearbyVentIndex = -1;
+      let nearestVentDistance = Infinity;
+
+      for (let i = 0; i < vents.length; i++) {
+        const v = vents[i];
+        if (!v.active || v.sealed) {
+          if (Math.random() < 0.06) {
+            particles.push({
+              x: v.x + (Math.random() - 0.5) * 12,
+              y: v.y - 6,
+              vx: (Math.random() - 0.5) * 0.4,
+              vy: -0.8 - Math.random() * 0.8,
+              life: 0.8,
+              color: 'rgba(56, 189, 248, 0.25)'
+            });
+          }
+          continue;
+        }
+
+        ventHeat += 0.006 * dt;
+
+        if (Math.random() < 0.42) {
+          particles.push({
+            x: v.x + (Math.random() - 0.5) * 16,
+            y: v.y - 4,
+            vx: (Math.random() - 0.5) * 1.2,
+            vy: -1.5 - Math.random() * 2.0,
+            life: 0.75,
+            color: Math.random() < 0.5 ? 'rgba(239, 68, 68, 0.8)' : 'rgba(251, 146, 60, 0.7)'
+          });
+        }
+
+        const ventDistance = Math.hypot(turtle.x - v.x, turtle.y - v.y);
+        if (ventDistance < 72 && ventDistance < nearestVentDistance) {
+          nearestVentDistance = ventDistance;
+          nearbyVentIndex = i;
+        }
+      }
+
+      if (nearbyVentIndex >= 0) {
+        ventAction.classList.add('visible');
+        ventAction.textContent = 'PRESS E TO CAP VENT';
+      } else {
+        ventAction.classList.remove('visible');
+      }
+
+      // Algae & Heat
+      let uneatenAlgae = 0;
+      for (let i = 0; i < algaes.length; i++) {
+        if (algaes[i].alive) uneatenAlgae++;
+      }
+      const algaeRatio = uneatenAlgae / algaes.length;
+      temp += (0.016 * dt + ventHeat) * (0.35 + algaeRatio * 0.85);
+      highestTemp = Math.max(highestTemp, temp);
+
+      // Meter Updates
+      const bloomPct = Math.min(100, Math.round(temp * 100));
+      bloomVal.textContent = `${bloomPct}%`;
+      bloomBar.style.width = `${bloomPct}%`;
+      if (bloomPct >= 80) {
+        bloomVal.style.color = '#f43f5e';
+        bloomBar.style.backgroundColor = '#f43f5e';
+      } else if (bloomPct >= 50) {
+        bloomVal.style.color = '#facc15';
+        bloomBar.style.backgroundColor = '#facc15';
+      } else {
+        bloomVal.style.color = '#10b981';
+        bloomBar.style.backgroundColor = '#10b981';
+      }
+
+      // Jelly Spawns
+      if (jellies.length < 60 && Math.random() < (0.02 + temp * 0.15 + (timeLeft < 5.0 ? 0.3 : 0))) {
+        jellies.push({
+          x: Math.random() * W,
+          y: H + 15,
+          vy: -0.5 - Math.random() * 0.6 - (temp * 0.5),
+          size: 7 + Math.random() * 5
+        });
+      }
+
+      // Update Jellies
+      for (let i = jellies.length - 1; i >= 0; i--) {
+        const j = jellies[i];
+        j.y += j.vy;
+
+        if (j.y < -15) {
+          jellies.splice(i, 1);
+          continue;
+        }
+
+        const td = Math.hypot(turtle.x - j.x, turtle.y - j.y);
+        if (td < 22) {
+          if (jellies.length < 60) {
+            jellies.push({
+              x: j.x + (Math.random() - 0.5) * 20,
+              y: j.y + 10,
+              vy: -0.7,
+              size: j.size * 0.85
+            });
+          }
+
+          for (let p = 0; p < 4; p++) {
+            particles.push({
+              x: j.x,
+              y: j.y,
+              vx: (Math.random() - 0.5) * 2,
+              vy: (Math.random() - 0.5) * 2,
+              life: 0.3,
+              color: 'rgba(253, 224, 71, 0.7)'
+            });
+          }
+
+          jelliesTriggered++;
+          jelliesVal.textContent = jelliesTriggered;
+          jellies.splice(i, 1);
+        }
+      }
+
+      // Update Fish & Combos
+      for (let i = 0; i < fishes.length; i++) {
+        const f = fishes[i];
+        f.wiggle += dt * 10;
+        const herdDist = selectedUpgrade === 'call' ? 180 : 120;
+        const d = Math.hypot(f.x - turtle.x, f.y - turtle.y);
+        if (d < herdDist) {
+          const repel = (herdDist - d) / herdDist;
+          f.vx += ((f.x - turtle.x) / d) * repel * 2.0;
+          f.vy += ((f.y - turtle.y) / d) * repel * 2.0;
+        }
+
+        if (f.y < H - 50) f.vy += 0.08;
+
+        f.vx *= 0.94;
+        f.vy *= 0.94;
+        f.x += f.vx;
+        f.y += f.vy;
+
+        if (f.x < 15) f.vx += 0.6;
+        if (f.x > W - 15) f.vx -= 0.6;
+        if (f.y > H - 10) { f.y = H - 10; f.vy *= -0.5; }
+
+        for (let k = 0; k < algaes.length; k++) {
+          const a = algaes[k];
+          if (a.alive && Math.hypot(f.x - a.x, f.y - a.y) < 18) {
+            a.alive = false;
+            algaeEaten++;
+            comboCount++;
+            comboTimer = 1.25;
+            bestCombo = Math.max(bestCombo, comboCount);
+            comboVal.textContent = `x${comboCount}`;
+
+            for (let p = 0; p < 4; p++) {
+              particles.push({
+                x: a.x,
+                y: a.y,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: -0.8 - Math.random() * 1.2,
+                life: 0.35,
+                color: '#34d399'
+              });
+            }
+
+            if (comboCount >= 3) {
+              temp = Math.max(0, temp - Math.min(0.012 * comboCount, 0.06));
+              if (comboCount === 3 || comboCount === 5 || comboCount % 10 === 0) {
+                showAlert(`GRAZE COMBO x${comboCount} — ECOSYSTEM STABILIZING`, 900);
+              }
+            }
+          }
+        }
+      }
+
+      if (comboTimer > 0) {
+        comboTimer -= dt;
+        if (comboTimer <= 0) {
+          comboCount = 0;
+          comboVal.textContent = 'x0';
+        }
+      }
+
+      // Predators AI & Tracking
+      for (let i = 0; i < obstacles.length; i++) {
+        const o = obstacles[i];
+        o.tailWave = (o.tailWave || 0) + dt * 10;
+
+        const formationAngle = (i / Math.max(1, obstacles.length)) * Math.PI * 2 +
+          performance.now() * 0.00035;
+        const formationRadius = 34 + (i % 3) * 12;
+
+        const targetX = turtle.x + Math.cos(formationAngle) * formationRadius;
+        const targetY = turtle.y + Math.sin(formationAngle) * formationRadius;
+
+        const huntDx = targetX - o.x;
+        const huntDy = targetY - o.y;
+        const huntDist = Math.hypot(huntDx, huntDy);
+
+        if (huntDist > 0) {
+          const pressureBoost = timeLeft <= 15 ? 1.35 : 1.0;
+          const targetVx = (huntDx / huntDist) * o.speed * pressureBoost;
+          const targetVy = (huntDy / huntDist) * o.speed * pressureBoost;
+          o.vx += (targetVx - o.vx) * 0.085;
+          o.vy += (targetVy - o.vy) * 0.085;
+        }
+
+        let separateX = 0;
+        let separateY = 0;
+        for (let j = 0; j < obstacles.length; j++) {
+          if (j === i) continue;
+          const other = obstacles[j];
+          const dx = o.x - other.x;
+          const dy = o.y - other.y;
+          const d = Math.hypot(dx, dy);
+
+          if (d > 0 && d < 42) {
+            const force = (42 - d) / 42;
+            separateX += (dx / d) * force;
+            separateY += (dy / d) * force;
+          }
+        }
+
+        o.vx += separateX * 0.28;
+        o.vy += separateY * 0.28;
+
+        o.x += o.vx;
+        o.y += o.vy;
+
+        // Damage & Collision
+        if (huntDist < o.size + 18 && invulnerableTimer <= 0) {
+          hp--;
+          invulnerableTimer = 1.1;
+          
+          hpVal.textContent = `${hp}/5`;
+          hpBar.style.width = `${(hp / 5) * 100}%`;
+          if (hp <= 2) {
+            hpVal.style.color = '#f43f5e';
+            hpBar.style.backgroundColor = '#f43f5e';
+          } else if (hp <= 3) {
+            hpVal.style.color = '#facc15';
+            hpBar.style.backgroundColor = '#facc15';
+          }
+
+          for (let p = 0; p < 14; p++) {
+            particles.push({
+              x: turtle.x,
+              y: turtle.y,
+              vx: (Math.random() - 0.5) * 6,
+              vy: (Math.random() - 0.5) * 6,
+              life: 0.45,
+              color: '#f43f5e'
+            });
+          }
+
+          const repelAng = Math.atan2(turtle.y - o.y, turtle.x - o.x);
+          turtle.vx += Math.cos(repelAng) * 6;
+          turtle.vy += Math.sin(repelAng) * 6;
+
+          if (hp > 0) {
+            showAlert(`STRIKE TAKEN! SHELL AT ${hp}/5`, 1800);
+          } else {
+            finishRun(false, "SHELL BREACHED — PREDATOR CASUALTY");
+            return;
+          }
+        }
+      }
+
+      // Visual expanding shockwaves
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.radius += dt * 380;
+        sw.alpha -= dt * 1.8;
+        if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+          shockwaves.splice(i, 1);
+        }
+      }
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= dt * 2.2;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      // End Conditions
+      if (temp >= 1.0) {
+        finishRun(false, "THERMAL OVERTAKE");
+      } else if (timeLeft <= 0) {
+        const success = (uneatenAlgae / algaes.length) < 0.35;
+        finishRun(success, success ? "TROPHIC EQUILIBRIUM PRESERVED" : "CANOPY OVERGROWN");
+      }
+    }
+
+    function finishRun(success, reason) {
+      gameState = 'MENU';
+      nearbyVentIndex = -1;
+      ventAction.classList.remove('visible');
+      alert30Shown = false;
+      alert5Shown = false;
+      predatorsSpawned = false;
+      overlay.classList.remove('hidden');
+
+      keys.up = keys.down = keys.left = keys.right = false;
+
+      const algaePct = initialAlgaeCount
+        ? Math.round((algaeEaten / initialAlgaeCount) * 100)
+        : 0;
+      const bloomPct = Math.min(100, Math.round(highestTemp * 100));
+      const sealedVents = vents.filter(v => v.sealed).length;
+      const totalVents = vents.length;
+
+      const resultsHtml = `
+        <table class="results-table">
+          <tr><td>Algae Beds Grazed</td><td>${algaePct}%</td></tr>
+          <tr><td>Peak Bloom Saturation</td><td>${bloomPct}%</td></tr>
+          <tr><td>Jelly Collisions</td><td>${jelliesTriggered}</td></tr>
+          <tr><td>Hydrothermal Vents Capped</td><td>${sealedVents} / ${totalVents}</td></tr>
+          <tr><td>Shell Integrity Remaining</td><td>${hp} / 5</td></tr>
+        </table>
+      `;
+
+      if (success) {
+        titleEl.textContent = "60-SECOND CYCLE PRESERVED";
+        titleEl.style.color = "#38bdf8";
+        subtitleEl.textContent = "TROPHIC STABILITY MAINTAINED";
+        descEl.innerHTML = `<b>Outcome:</b> ${reason}.<br>The seabed remained clean enough to suppress medusa reproduction.${resultsHtml}`;
+      } else {
+        titleEl.textContent = reason.includes("BREACHED") ? "CARAPACE DESTROYED" : "REEF SUFFOCATED";
+        titleEl.style.color = "#f43f5e";
+        subtitleEl.textContent = "CYCLE COLLAPSED";
+        descEl.innerHTML = `<b>Cause of Failure:</b> ${reason}.<br>Avoid jelly collisions, cap erupting vents, and herd fish downward.${resultsHtml}`;
+      }
+
+      upgradeContainer.style.display = 'flex';
+      btn.textContent = "TRY AGAIN";
+    }
+
+    // ==========================================
+    // MULTI-COLOR ATMOSPHERIC AMBIANCE RENDER
+    // ==========================================
+
+    function drawEnvironment(r, g, b) {
+      const now = performance.now() * 0.001;
+
+      // 1. BASE OCEAN WATER COLUMN
+      const oceanGrad = ctx.createLinearGradient(0, 0, 0, H);
+      oceanGrad.addColorStop(0, `rgb(${Math.round(r * 0.8 + 2)}, ${Math.round(g * 0.8 + 14)}, ${Math.round(b * 0.9 + 32)})`);
+      oceanGrad.addColorStop(0.5, `rgb(${r}, ${g}, ${b})`);
+      oceanGrad.addColorStop(1, `rgb(${Math.max(0, r - 5)}, ${Math.max(2, g - 6)}, ${Math.max(8, b - 14)})`);
+      ctx.fillStyle = oceanGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // 2. BIOLUMINESCENT REFRACTIVE CAUSTIC RAYS
+      ctx.save();
+      for (let i = 0; i < 7; i++) {
+        const speedFactor = 0.35 + i * 0.12;
+        const waveOffset = Math.sin(now * speedFactor + i * 1.5) * 85;
+        const beamX = (W / 6) * i + waveOffset;
+        const beamW = 55 + Math.sin(now * 0.5 + i) * 25;
+
+        const caustGrad = ctx.createLinearGradient(beamX, 0, beamX + 110, H * 0.85);
+        if (i % 2 === 0) {
+          caustGrad.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
+          caustGrad.addColorStop(0.4, 'rgba(45, 212, 191, 0.04)');
+          caustGrad.addColorStop(1, 'rgba(2, 6, 23, 0.0)');
+        } else {
+          caustGrad.addColorStop(0, 'rgba(129, 140, 248, 0.06)');
+          caustGrad.addColorStop(0.4, 'rgba(56, 189, 248, 0.03)');
+          caustGrad.addColorStop(1, 'rgba(2, 6, 23, 0.0)');
+        }
+
+        ctx.fillStyle = caustGrad;
+        ctx.beginPath();
+        ctx.moveTo(beamX - 45, 0);
+        ctx.lineTo(beamX + beamW, 0);
+        ctx.lineTo(beamX + beamW + 210, H * 0.85);
+        ctx.lineTo(beamX - 15, H * 0.85);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = 'rgba(125, 211, 252, 0.09)';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      for (let y = 12; y < 100; y += 20) {
+        ctx.moveTo(0, y);
+        for (let x = 0; x <= W; x += 45) {
+          ctx.lineTo(x, y + Math.sin(now * 1.6 + x * 0.015 + y) * 6);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. ABYSSAL DEPTH SHADOW
+      const depthGrad = ctx.createLinearGradient(0, 0, 0, H);
+      depthGrad.addColorStop(0, 'rgba(2, 6, 23, 0.02)');
+      depthGrad.addColorStop(0.55, 'rgba(15, 23, 42, 0.35)');
+      depthGrad.addColorStop(1, 'rgba(2, 3, 10, 0.94)');
+      ctx.fillStyle = depthGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // 4. DEEPEST TRENCH SHELF
+      ctx.fillStyle = `rgba(${Math.max(1, r - 3)}, ${Math.max(2, g - 6)}, ${Math.max(12, b - 8)}, 0.48)`;
+      ctx.beginPath();
+      ctx.moveTo(0, H - 135);
+      ctx.bezierCurveTo(W * 0.22, H - 210, W * 0.38, H - 105, W * 0.62, H - 180);
+      ctx.bezierCurveTo(W * 0.82, H - 220, W * 0.94, H - 125, W, H - 145);
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fill();
+
+      // 5. MID-RANGE VOLCANIC SPIRES
+      ctx.fillStyle = `rgba(${Math.max(2, r - 2)}, ${Math.max(6, g - 3)}, ${Math.max(16, b - 4)}, 0.72)`;
+      ctx.beginPath();
+      ctx.moveTo(0, H - 65);
+      for (let i = 0; i < backgroundReefs.length; i++) {
+        const reef = backgroundReefs[i];
+        ctx.lineTo(reef.x - reef.w * 0.5, H - 55);
+        ctx.lineTo(reef.x - reef.w * 0.15, H - (65 + reef.h));
+        ctx.lineTo(reef.x + reef.w * 0.2, H - (60 + reef.h * 0.85));
+        ctx.lineTo(reef.x + reef.w * 0.5, H - 55);
+      }
+      ctx.lineTo(W, H - 55);
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fill();
+
+      // 6. SEAFLOOR CRAGS & ROCK STRATA
+      for (let i = 0; i < seafloorCrags.length; i++) {
+        const crag = seafloorCrags[i];
+        ctx.fillStyle = crag.strataColor;
+        ctx.beginPath();
+        ctx.moveTo(crag.x - crag.w * 0.5, H - 14);
+        ctx.lineTo(crag.x - crag.w * 0.1, H - 14 - crag.h);
+        ctx.lineTo(crag.x + crag.w * 0.3, H - 14 - crag.h * 0.75);
+        ctx.lineTo(crag.x + crag.w * 0.5, H - 14);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // 7. DEEP ABYSSAL KELP
+      ctx.strokeStyle = `rgba(4, 47, 46, 0.45)`;
+      ctx.lineWidth = 5.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < kelps.length; i++) {
+        const k = kelps[i];
+        if (k.depth === 0) {
+          const sway = Math.sin(now * (k.speed * 0.7) + k.phase) * 28;
+          ctx.moveTo(k.x, H - 14);
+          ctx.quadraticCurveTo(k.x + sway * 0.45, H - (k.h * 0.5), k.x + sway, H - k.h);
+        }
+      }
+      ctx.stroke();
+
+      // 8. CORAL SEA FANS
+      for (let i = 0; i < coralFans.length; i++) {
+        const c = coralFans[i];
+        ctx.strokeStyle = c.hue;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let branch = -3; branch <= 3; branch++) {
+          const bAngle = (branch / 3) * c.spread;
+          ctx.moveTo(c.x, H - 14);
+          ctx.quadraticCurveTo(c.x + bAngle * 0.5, H - 14 - c.h * 0.6, c.x + bAngle, H - 14 - c.h);
+        }
+        ctx.stroke();
+      }
+
+      // 9. ATMOSPHERIC BLOOM VIGNETTE
+      if (temp > 0.15) {
+        const bloomAlpha = Math.min(0.48, (temp - 0.15) * 0.5);
+        const grad = ctx.createRadialGradient(W * 0.5, H * 0.45, 80, W * 0.5, H * 0.45, Math.max(W, H) * 0.85);
+        grad.addColorStop(0, `rgba(132, 204, 22, ${bloomAlpha * 0.4})`);
+        grad.addColorStop(0.65, `rgba(234, 179, 8, ${bloomAlpha * 0.8})`);
+        grad.addColorStop(1, `rgba(180, 83, 9, ${bloomAlpha * 1.05})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // 10. MIDGROUND & FOREGROUND KELP
+      ctx.strokeStyle = `rgba(13, 148, 136, 0.32)`;
+      ctx.lineWidth = 3.8;
+      ctx.beginPath();
+      for (let i = 0; i < kelps.length; i++) {
+        const k = kelps[i];
+        if (k.depth === 1) {
+          const sway = Math.sin(now * k.speed + k.phase) * 22;
+          ctx.moveTo(k.x, H - 14);
+          ctx.quadraticCurveTo(k.x + sway * 0.4, H - (k.h * 0.5), k.x + sway, H - k.h);
+        }
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(16, 185, 129, 0.36)`;
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      for (let i = 0; i < kelps.length; i++) {
+        const k = kelps[i];
+        if (k.depth === 2) {
+          const sway = Math.sin(now * (k.speed * 1.3) + k.phase) * 17;
+          ctx.moveTo(k.x, H - 14);
+          ctx.quadraticCurveTo(k.x + sway * 0.35, H - (k.h * 0.5), k.x + sway, H - k.h);
+        }
+      }
+      ctx.stroke();
+
+      // 11. MULTI-COLORED MARINE SNOW
+      for (let i = 0; i < motes.length; i++) {
+        const m = motes[i];
+        const pulse = 0.55 + Math.sin(now * 2.2 + m.pulse) * 0.45;
+        if (m.type === 'cyan') {
+          ctx.fillStyle = `rgba(56, 189, 248, ${0.35 * pulse})`;
+        } else if (m.type === 'violet') {
+          ctx.fillStyle = `rgba(168, 85, 247, ${0.28 * pulse})`;
+        } else {
+          ctx.fillStyle = `rgba(52, 211, 153, ${0.32 * pulse})`;
+        }
+        ctx.fillRect(m.x, m.y, m.size, m.size);
+      }
+
+      // 12. RISING BUBBLES
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.32)';
+      ctx.lineWidth = 1.1;
+      for (let i = 0; i < ambientBubbles.length; i++) {
+        const b = ambientBubbles[i];
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 13. BASALT SEABED WITH MOSS
+      ctx.fillStyle = '#02050f';
+      ctx.fillRect(0, H - 14, W, 14);
+      ctx.fillStyle = '#064e3b';
+      ctx.fillRect(0, H - 14, W, 2.5);
+    }
+
+    // MULTI-TIERED BENTHIC ALGAE
+    function drawAlgae() {
+      const now = performance.now() * 0.0028;
+      for (let i = 0; i < algaes.length; i++) {
+        const a = algaes[i];
+        if (!a.alive) continue;
+
+        const sway = Math.sin(now + a.swayPhase) * 4.5;
+        const stemH = a.height * 1.35;
+
+        ctx.fillStyle = '#047857';
+        ctx.fillRect(a.x - 4, H - 14, 8, 3);
+
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.moveTo(a.x - 2, H - 14);
+        ctx.quadraticCurveTo(a.x - 5 + sway * 0.5, H - 14 - stemH * 0.5, a.x + sway, H - 14 - stemH);
+        ctx.lineTo(a.x + 3 + sway, H - 14 - stemH);
+        ctx.lineTo(a.x + 2, H - 14);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#059669';
+        ctx.beginPath();
+        ctx.moveTo(a.x - 3, H - 14);
+        ctx.quadraticCurveTo(a.x - 8 + sway * 0.4, H - 14 - stemH * 0.4, a.x - 7 + sway * 0.8, H - 14 - stemH * 0.75);
+        ctx.lineTo(a.x - 4 + sway * 0.8, H - 14 - stemH * 0.75);
+        ctx.lineTo(a.x - 1, H - 14);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#34d399';
+        ctx.beginPath();
+        ctx.moveTo(a.x + 1, H - 14);
+        ctx.quadraticCurveTo(a.x + 8 + sway * 0.4, H - 14 - stemH * 0.45, a.x + 8 + sway * 0.9, H - 14 - stemH * 0.8);
+        ctx.lineTo(a.x + 5 + sway * 0.9, H - 14 - stemH * 0.8);
+        ctx.lineTo(a.x + 3, H - 14);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function drawVents() {
+      for (let i = 0; i < vents.length; i++) {
+        const v = vents[i];
+
+        ctx.fillStyle = '#1e1b4b';
+        ctx.beginPath();
+        ctx.moveTo(v.x - 22, H - 14);
+        ctx.lineTo(v.x - 11, v.y - 14);
+        ctx.lineTo(v.x + 11, v.y - 14);
+        ctx.lineTo(v.x + 22, H - 14);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(v.x - 13, v.y - 16, 26, 3);
+
+        if (v.sealed) {
+          ctx.fillStyle = '#0284c7';
+          ctx.fillRect(v.x - 14, v.y - 22, 28, 7);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(v.x - 6, v.y - 25, 12, 3);
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 9px Courier New';
+          ctx.textAlign = 'center';
+          ctx.fillText('SEALED', v.x, v.y - 29);
+        } else if (v.active) {
+          const pulse = 0.65 + Math.sin(performance.now() * 0.012) * 0.3;
+          ctx.fillStyle = `rgba(239, 68, 68, ${pulse})`;
+          ctx.fillRect(v.x - 9, v.y - 18, 18, 5);
+
+          ctx.strokeStyle = nearbyVentIndex === i ? '#38bdf8' : 'rgba(244, 63, 94, 0.7)';
+          ctx.lineWidth = nearbyVentIndex === i ? 2.5 : 1.5;
+          ctx.beginPath();
+          ctx.arc(v.x, v.y - 8, nearbyVentIndex === i ? 30 : 22, 0, Math.PI * 2);
+          ctx.stroke();
+
+          if (nearbyVentIndex === i) {
+            ctx.fillStyle = '#e0f2fe';
+            ctx.font = 'bold 11px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText('PRESS E TO CAP', v.x, v.y - 42);
+          }
+        }
+      }
+    }
+
+    // DETAILED REEF FISH
+    function drawFish() {
+      for (let i = 0; i < fishes.length; i++) {
+        const f = fishes[i];
+        const heading = Math.atan2(f.vy, f.vx) || 0;
+        const tailSway = Math.sin(f.wiggle) * 4.2;
+
+        ctx.save();
+        ctx.translate(f.x, f.y);
+        ctx.rotate(heading);
+
+        // Counter-shaded body
+        ctx.fillStyle = '#0369a1';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 11, 5.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Iridescent flank stripe
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.ellipse(1.5, -0.6, 8.5, 2.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Belly countershading
+        ctx.fillStyle = 'rgba(224, 242, 254, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(1.5, 2.2, 7, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Caudal Fin
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.moveTo(-9, 0);
+        ctx.lineTo(-17, -6.5 + tailSway);
+        ctx.lineTo(-13, 0);
+        ctx.lineTo(-17, 6.5 + tailSway);
+        ctx.closePath();
+        ctx.fill();
+
+        // Dorsal fin rays
+        ctx.fillStyle = '#7dd3fc';
+        ctx.beginPath();
+        ctx.moveTo(-2.5, -5);
+        ctx.lineTo(2, -9);
+        ctx.lineTo(4.5, -3.5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pectoral fin
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
+        ctx.beginPath();
+        ctx.ellipse(-1, 1.5, 3.5, 1.8, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fish Eye
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(6.5, -2, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#030712';
+        ctx.beginPath();
+        ctx.arc(7.2, -2, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(6.8, -2.4, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    // REALISTIC TRANSLUCENT JELLYFISH
+    function drawJellyfish() {
+      const now = performance.now() * 0.003;
+      const isWarm = temp > 0.55;
+      const outerBell = isWarm ? 'rgba(250, 204, 21, 0.72)' : 'rgba(186, 230, 253, 0.65)';
+      const innerBell = isWarm ? 'rgba(234, 179, 8, 0.42)' : 'rgba(56, 189, 248, 0.35)';
+      const marginGlow = isWarm ? '#facc15' : '#7dd3fc';
+      const tentacleColor = isWarm ? 'rgba(234, 179, 8, 0.5)' : 'rgba(147, 197, 253, 0.42)';
+
+      for (let i = 0; i < jellies.length; i++) {
+        const j = jellies[i];
+        const pulse = Math.sin(now + j.x * 0.05 + j.y * 0.05);
+        const w = j.size * (1 + pulse * 0.14);
+        const h = j.size * (0.9 - pulse * 0.12);
+
+        ctx.save();
+        ctx.translate(j.x, j.y);
+
+        // Subumbrella inner dome
+        ctx.fillStyle = innerBell;
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.85, 0);
+        ctx.quadraticCurveTo(-w * 0.4, -h * 1.3, 0, -h * 1.3);
+        ctx.quadraticCurveTo(w * 0.4, -h * 1.3, w * 0.85, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Exumbrella outer translucent dome
+        ctx.fillStyle = outerBell;
+        ctx.beginPath();
+        ctx.moveTo(-w, 0);
+        ctx.quadraticCurveTo(-w * 0.5, -h * 1.55, 0, -h * 1.55);
+        ctx.quadraticCurveTo(w * 0.5, -h * 1.55, w, 0);
+        ctx.quadraticCurveTo(0, -h * 0.25, -w, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Bell margin rhopalia edge
+        ctx.strokeStyle = marginGlow;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(-w, 0);
+        ctx.quadraticCurveTo(0, -h * 0.25, w, 0);
+        ctx.stroke();
+
+        // Trailing oral arms
+        ctx.strokeStyle = outerBell;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        const armWave = Math.sin(now * 1.8 + j.x) * 4;
+        ctx.moveTo(-w * 0.3, 0);
+        ctx.quadraticCurveTo(-w * 0.2 + armWave, h * 0.9, -w * 0.1, h * 1.6);
+        ctx.moveTo(w * 0.3, 0);
+        ctx.quadraticCurveTo(w * 0.2 - armWave, h * 0.9, w * 0.1, h * 1.6);
+        ctx.stroke();
+
+        // Marginal fine tentacles
+        ctx.strokeStyle = tentacleColor;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        for (let t = -3; t <= 3; t++) {
+          const tx = (t / 3) * (w * 0.75);
+          const twiggle = Math.sin(now * 2.0 + t + j.y * 0.1) * 3.5;
+          ctx.moveTo(tx, -1);
+          ctx.quadraticCurveTo(tx + twiggle, h * 1.0, tx - twiggle * 0.6, h * 1.8);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    // APEX PREDATOR SHARK WITH VERTEBRAL SPLINE SWIMMING
+    function drawPredators() {
+      for (let i = 0; i < obstacles.length; i++) {
+        const o = obstacles[i];
+        const heading = Math.atan2(o.vy, o.vx) || 0;
+        const length = o.size * 1.8;
+        const width = o.size * 0.95;
+        const spineSway = Math.sin(o.tailWave || 0) * 3.5;
+
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        ctx.rotate(heading);
+
+        // Predatory pelagic fuselage
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.moveTo(length * 1.15, 0);
+        ctx.lineTo(length * 0.45, -width * 0.85);
+        ctx.lineTo(-length * 0.25, -width * 0.95);
+        ctx.lineTo(-length * 0.85, -width * 0.35 + spineSway * 0.5);
+        // Heterocercal caudal tail
+        ctx.lineTo(-length * 1.5, -width * 1.25 + spineSway);
+        ctx.lineTo(-length * 1.2, -width * 0.1 + spineSway);
+        ctx.lineTo(-length * 1.4, width * 0.85 + spineSway);
+        ctx.lineTo(-length * 0.85, width * 0.35 + spineSway * 0.5);
+        ctx.lineTo(length * 0.4, width * 0.75);
+        ctx.closePath();
+        ctx.fill();
+
+        // Underside belly countershading
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath();
+        ctx.moveTo(length * 0.9, 0);
+        ctx.quadraticCurveTo(0, width * 0.7, -length * 0.8, width * 0.25);
+        ctx.lineTo(-length * 0.8, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Main dorsal fin
+        ctx.fillStyle = '#7f1d1d';
+        ctx.beginPath();
+        ctx.moveTo(length * 0.15, -width * 0.75);
+        ctx.lineTo(-length * 0.35, -width * 1.85);
+        ctx.lineTo(-length * 0.1, -width * 0.65);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pectoral steering fin
+        ctx.beginPath();
+        ctx.moveTo(length * 0.35, width * 0.35);
+        ctx.lineTo(-length * 0.15, width * 1.6);
+        ctx.lineTo(0.05, width * 0.5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Gill slits
+        ctx.strokeStyle = '#450a0a';
+        ctx.lineWidth = 1.2;
+        for (let g = 0; g < 3; g++) {
+          const gx = length * 0.25 - g * 3.5;
+          ctx.beginPath();
+          ctx.moveTo(gx, -width * 0.3);
+          ctx.lineTo(gx - 1, width * 0.2);
+          ctx.stroke();
+        }
+
+        // Predatory eye
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(length * 0.6, -width * 0.3, 4.0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(length * 0.6, -width * 0.3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#450a0a';
+        ctx.beginPath();
+        ctx.ellipse(length * 0.67, -width * 0.3, 0.9, 2.2, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    // SEA TURTLE WITH ANATOMICAL SCUTE PANELS
+    function drawTurtle() {
+      const isDamaged = invulnerableTimer > 0;
+      if (isDamaged && Math.floor(performance.now() / 80) % 2 === 0) return;
+
+      const now = performance.now() * 0.004;
+      const spd = Math.hypot(turtle.vx, turtle.vy);
+      const strokeSpeed = Math.min(2.5, 0.8 + spd * 0.22);
+      const flipperWave = Math.sin(now * strokeSpeed);
+
+      ctx.save();
+      ctx.translate(turtle.x, turtle.y);
+      ctx.rotate(turtle.angle);
+
+      if (selectedUpgrade === 'call') {
+        const carapaceBase = isDamaged ? '#f43f5e' : '#044e46';
+        const scuteTone = isDamaged ? '#fda4af' : '#0d9488';
+        const glowMark = isDamaged ? '#fda4af' : '#2dd4bf';
+
+        // Wide paddle front flippers
+        ctx.fillStyle = scuteTone;
+        ctx.beginPath();
+        ctx.ellipse(3, -16 + flipperWave * 3.5, 5.5, 11, -0.35, 0, Math.PI * 2);
+        ctx.ellipse(3, 16 - flipperWave * 3.5, 5.5, 11, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rear flippers
+        ctx.beginPath();
+        ctx.ellipse(-13, -9, 3.8, 6.5, 0.45, 0, Math.PI * 2);
+        ctx.ellipse(-13, 9, 3.8, 6.5, -0.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main Carapace Shell
+        ctx.fillStyle = carapaceBase;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 18, 13.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Scute Plate Tiles
+        ctx.fillStyle = scuteTone;
+        for (let s = -2; s <= 2; s++) {
+          ctx.beginPath();
+          ctx.arc(s * 5.5, 0, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Bioluminescent Wake Ring
+        ctx.strokeStyle = glowMark;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 15, 10.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Head
+        ctx.fillStyle = scuteTone;
+        ctx.beginPath();
+        ctx.arc(17.5, 0, 5.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(19, -2.8, 1.2, 0, Math.PI * 2);
+        ctx.arc(19, 2.8, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (selectedUpgrade === 'shell') {
+        const carapaceBase = isDamaged ? '#f43f5e' : '#03456c';
+        const wingColor = isDamaged ? '#fda4af' : '#0284c7';
+        const keelColor = isDamaged ? '#fda4af' : '#38bdf8';
+
+        // Swept hydrofoil pectoral wings
+        ctx.fillStyle = wingColor;
+        ctx.beginPath();
+        ctx.moveTo(6, -6);
+        ctx.lineTo(-8, -28 + flipperWave * 4.5);
+        ctx.lineTo(-15, -26 + flipperWave * 4.5);
+        ctx.lineTo(-3, -6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(6, 6);
+        ctx.lineTo(-8, 28 - flipperWave * 4.5);
+        ctx.lineTo(-15, 26 - flipperWave * 4.5);
+        ctx.lineTo(-3, 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Stabilizer caudal fins
+        ctx.beginPath();
+        ctx.moveTo(-13, -4);
+        ctx.lineTo(-20, -13);
+        ctx.lineTo(-17, -2);
+        ctx.closePath();
+        ctx.moveTo(-13, 4);
+        ctx.lineTo(-20, 13);
+        ctx.lineTo(-17, 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Streamlined fusiform shell
+        ctx.fillStyle = carapaceBase;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 22, 9.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hydrodynamic Keel Ridge
+        ctx.fillStyle = keelColor;
+        ctx.beginPath();
+        ctx.moveTo(15, 0);
+        ctx.lineTo(-17, -2.2);
+        ctx.lineTo(-17, 2.2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sharp Rostrum Beak
+        ctx.fillStyle = wingColor;
+        ctx.beginPath();
+        ctx.moveTo(18, -4.5);
+        ctx.lineTo(25, 0);
+        ctx.lineTo(18, 4.5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(20, -2.2, 1.2, 0, Math.PI * 2);
+        ctx.arc(20, 2.2, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        const carapaceBase = isDamaged ? '#f43f5e' : '#0f766e';
+        const plateColor = isDamaged ? '#fda4af' : '#38bdf8';
+        const frostRing = isDamaged ? '#f43f5e' : '#e0f2fe';
+
+        // Diamond-armored flippers
+        ctx.fillStyle = plateColor;
+        ctx.beginPath();
+        ctx.moveTo(3, -8);
+        ctx.lineTo(7, -19 + flipperWave * 2.2);
+        ctx.lineTo(-4, -21 + flipperWave * 2.2);
+        ctx.lineTo(-3, -8);
+        ctx.closePath();
+        ctx.moveTo(3, 8);
+        ctx.lineTo(7, 19 - flipperWave * 2.2);
+        ctx.lineTo(-4, 21 - flipperWave * 2.2);
+        ctx.lineTo(-3, 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Armored rear hind flippers
+        ctx.fillRect(-15, -11, 5.5, 5.5);
+        ctx.fillRect(-15, 5.5, 5.5, 5.5);
+
+        // Heavy central shell
+        ctx.fillStyle = carapaceBase;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 16, 13, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Crystalline edge plating
+        ctx.strokeStyle = frostRing;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 19, 16, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Armored scute tiles
+        ctx.fillStyle = frostRing;
+        ctx.fillRect(-4, -4, 8, 8);
+
+        // Heavy armored head
+        ctx.fillStyle = plateColor;
+        ctx.beginPath();
+        ctx.arc(16.5, 0, 5.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(18, -2.6, 1.2, 0, Math.PI * 2);
+        ctx.arc(18, 2.6, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawShockwaves() {
+      for (let i = 0; i < shockwaves.length; i++) {
+        const sw = shockwaves[i];
+        ctx.strokeStyle = `rgba(56, 189, 248, ${sw.alpha})`;
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(224, 242, 254, ${sw.alpha * 0.55})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, Math.max(0, sw.radius - 8), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawParticles() {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        ctx.fillStyle = p.color || '#38bdf8';
+        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+      }
+    }
+
+    // ZERO-COST ADDITIVE LIGHT PASS (BIOLUMINESCENT VOLUMETRICS)
+    function drawLightingPass() {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // 1. Turtle Bioluminescent Halo
+      const turtleGlow = ctx.createRadialGradient(turtle.x, turtle.y, 4, turtle.x, turtle.y, 45);
+      turtleGlow.addColorStop(0, 'rgba(56, 189, 248, 0.18)');
+      turtleGlow.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+      ctx.fillStyle = turtleGlow;
+      ctx.beginPath();
+      ctx.arc(turtle.x, turtle.y, 45, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Predator Crimson Headlights
+      for (let i = 0; i < obstacles.length; i++) {
+        const o = obstacles[i];
+        const predGlow = ctx.createRadialGradient(o.x, o.y, 2, o.x, o.y, 35);
+        predGlow.addColorStop(0, 'rgba(239, 68, 68, 0.22)');
+        predGlow.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+        ctx.fillStyle = predGlow;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, 35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 3. Hydrothermal Vent Incandescence
+      for (let i = 0; i < vents.length; i++) {
+        const v = vents[i];
+        if (v.active && !v.sealed) {
+          const ventGlow = ctx.createRadialGradient(v.x, v.y - 10, 4, v.x, v.y - 10, 50);
+          ventGlow.addColorStop(0, 'rgba(248, 113, 113, 0.25)');
+          ventGlow.addColorStop(1, 'rgba(248, 113, 113, 0.0)');
+          ctx.fillStyle = ventGlow;
+          ctx.beginPath();
+          ctx.arc(v.x, v.y - 10, 50, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // ==========================================
+    // DRAW PIPELINE & ANIMATION LOOP
+    // ==========================================
+    function draw() {
+      let r, g, b;
+      if (temp < 0.5) {
+        const t = temp * 2;
+        r = Math.round(2 + t * 8);
+        g = Math.round(6 + t * 30);
+        b = Math.round(18 + t * 38);
+      } else {
+        const t = (temp - 0.5) * 2;
+        r = Math.round(10 + t * 122);
+        g = Math.round(36 + t * 135);
+        b = Math.round(56 - t * 44);
+      }
+
+      drawEnvironment(r, g, b);
+      drawAlgae();
+      drawVents();
+      drawFish();
+      drawJellyfish();
+      drawPredators();
+      drawParticles();
+      drawShockwaves();
+      drawTurtle();
+      drawLightingPass();
+    }
+
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (gameState === 'PLAYING') {
+        update(dt);
+      }
+      draw();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
